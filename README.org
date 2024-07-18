@@ -13,4 +13,4 @@ to me -- thus this product that meets my needs (and, from experience, those
 of other professionals who get annoyed by diagramming tools).
 
 Here's a screenshot with demo data (initial working prototype):
-[[file:/Users/wb/Documents/Python/hexagonal-clusters/HexagonalClusters/output/demo.png]]
+[[file:./HexagonalClusters/output/demo.png]]
