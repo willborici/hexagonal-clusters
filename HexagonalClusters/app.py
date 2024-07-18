@@ -22,11 +22,13 @@ class HexagonClusterApp:
         # Use HexagonDrawer to draw a hexagon
         self.hexagon_drawer.draw_hexagon(x, y, text)
 
+    # Grab the arranged hexagons into a postscript (see HexagonDrawer.cluster_ps_file attribute)
+    # and include this postscript into an onload js call
+    # inside an html rendering (html file name inside the HexagonDrawer.export_to_html() method)
     def export_to_html(self):
-        width = self.width
-        height = self.height
-        self.hexagon_drawer.export_to_html(width, height)
+        self.hexagon_drawer.export_to_html(self.width, self.height)
 
+    # Need this button to raise the export_to_html call when clicked
     def setup_export_button(self):
         export_button = tk.Button(self.root, text="Export to HTML", command=self.export_to_html)
         export_button.pack()

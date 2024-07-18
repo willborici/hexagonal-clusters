@@ -4,7 +4,7 @@ import elicited_information as elicited_info
 
 # read source data (elicited information)
 # the csv file contains two columns: source and elicited information text
-csv_file = open('elicited_information.csv', 'r')
+csv_file = open('input/elicited_information.csv', 'r')
 csv_reader = csv.reader(csv_file)
 
 elicited_information = []  # list of elicited information objects
@@ -35,7 +35,6 @@ for information in elicited_information:
     else:
         x = 100
         y += 100
-
 
 # Bind export to HTML to a button click event to call the export_to_html method in app.py
 export_button = app.setup_export_button()
