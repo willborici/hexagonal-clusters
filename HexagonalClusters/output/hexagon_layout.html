@@ -1,0 +1,25 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Hexagon Layout</title>
+            <script type="text/javascript">
+                function drawHexagons() {
+                    var canvas = document.getElementById('hexagonCanvas');
+                    var ctx = canvas.getContext('2d');
+
+                    var img = new Image();
+                    img.onload = function() {
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = 'output/hexagonal_clusters.ps';
+                }
+            </script>
+        </head>
+        <body onload="drawHexagons()">
+            <canvas id="hexagonCanvas" width="900" height="600" style="border:1px solid #eee;">
+                Your browser does not support the HTML5 canvas tag.
+            </canvas>
+        </body>
+        </html>
+        

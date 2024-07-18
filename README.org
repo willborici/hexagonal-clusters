@@ -1,0 +1,13 @@
+In my consulting work, I elicit a lot of information, from challenges and
+needs (often expressed as symptoms) to wishes and opinions. I have found the
+hexagon technique (see https://thesystemsthinker.com/hexagons-from-ideas-to-variables/)
+quite powerful in analyzing and synthesizing solutions and strategies.
+
+The goal of this project is to build an interactive hexagonal clustering
+product that can take elicited information as input and create hexagons for
+the user to create clusters based on affinity or other criteria.
+
+While all sorts of existing office tools can be used to draw hexagons and
+play around with the layout, they are fairly static and, frankly, not appealing
+to me -- thus this product that meets my needs (and, from experience, those
+of other professionals who get annoyed by diagramming tools).
