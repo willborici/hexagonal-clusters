@@ -1,6 +1,20 @@
 # class for drawing a hexagon, with mouse event binders for drag & drop
+import math
 
-class HexagonDrawer:
+
+def distance_between_sides(side1_x1, side1_y1, side1_x2, side1_y2, side2_x1, side2_y1, side2_x2, side2_y2):
+    # calculated the distance between the midpoint of side 1 and the midpoint of side 2
+    midpoint_side1_x = (side1_x1 + side1_x2) / 2
+    midpoint_side1_y = (side1_y1 + side1_y2) / 2
+    midpoint_side2_x = (side2_x1 + side2_x2) / 2
+    midpoint_side2_y = (side2_y1 + side2_y2) / 2
+
+    distance = math.sqrt((midpoint_side2_x - midpoint_side1_x) ** 2 + (midpoint_side2_y - midpoint_side1_y) ** 2)
+
+    return distance
+
+
+class Hexagon:
     hexagon_id = 0  # Class-level identifier to track hexagon numbers and print them on GUI
 
     def __init__(self, canvas):
@@ -8,26 +22,26 @@ class HexagonDrawer:
         self.hexagons = []  # list to store hexagon properties and elicited info text
         self.selected_hexagon = None
         self.drag_data = {'x': 0, 'y': 0, 'item': None}
-        self.hexagon_size = 50
+        self.snap_distance = 3  # to automatically snap a moving hexagon to a nearby one
+        self.size = 50
         self.font = 'Consolas'
         self.font_size = 10
         self.truncation_mark = '[...]'
         self.cluster_ps_file = 'output/hexagonal_clusters.ps'  # Define cluster_ps_file for cluster output
 
-    def draw_hexagon(self, x, y, text):
+    def draw(self, x, y, text):
         # Increment ID
-        HexagonDrawer.hexagon_id += 1
+        Hexagon.hexagon_id += 1
 
-        # Draw hexagon polygon
-        hexagon = self.canvas.create_polygon(
-            x, y - self.hexagon_size,
-               x + self.hexagon_size * 0.866, y - self.hexagon_size / 2,
-               x + self.hexagon_size * 0.866, y + self.hexagon_size / 2,
-            x, y + self.hexagon_size,
-               x - self.hexagon_size * 0.866, y + self.hexagon_size / 2,
-               x - self.hexagon_size * 0.866, y - self.hexagon_size / 2,
-            outline='navy', fill='orange', width=0.5
-        )
+        # Define hexagon points into a list
+        points = []
+        for i in range(6):
+            angle_deg = 60 * i + 30
+            angle_rad = math.pi / 180 * angle_deg
+            points.append(x + self.size * math.cos(angle_rad))
+            points.append(y + self.size * math.sin(angle_rad))
+        # draw hexagon with given points
+        hexagon = self.canvas.create_polygon(points, outline='navy', fill='orange', width=0.5)
 
         # Create a unique tag for the hexagon in order to bind it later to the mouse left-click
         # since polygons are not bound by default
@@ -39,14 +53,14 @@ class HexagonDrawer:
 
         # Display hexagon ID on top vertex, and save to hexagon_number to drag when hexagon moves
         hexagon_number = self.canvas.create_text(
-            x, y - self.hexagon_size + 7,
-            text=str(HexagonDrawer.hexagon_id),
+            x, y - self.size + 7,
+            text=str(Hexagon.hexagon_id),
             font=(self.font, self.font_size + 2),
             fill='navy'
         )
 
         # Define width for wrapping text:
-        text_wrap_width = self.hexagon_size * 0.85
+        text_wrap_width = self.size * 0.85
 
         # Check if text exceeds 85% of the hexagon width
         if self.text_exceeds_width(text, text_wrap_width):
@@ -67,8 +81,16 @@ class HexagonDrawer:
             # Draw text directly inside hexagon as is
             text_id = self.canvas.create_text(x, y, text=text, font=(self.font, self.font_size), fill='black')
 
-        # Store hexagon data tuple with indices: [0, 1, 2, 3, 4, 5, ...]
-        self.hexagons.append((hexagon, text_id, hexagon_number, x, y, text))
+        # Store hexagon data in a dictionary
+        hexagon_data = {
+            'hexagon': hexagon,
+            'text_id': text_id,
+            'hexagon_number': hexagon_number,
+            'x': x,
+            'y': y,
+            'text': text
+        }
+        self.hexagons.append(hexagon_data)  # List of hexagon dictionaries
 
         # Bind drag events
         self.bind_drag(hexagon)
@@ -84,7 +106,7 @@ class HexagonDrawer:
         # Split text into lines, such that each split line fits within the hexagon width,
         # and if the split lines exceed the hexagon's height, truncate them:
         # Define hexagon height, given hexagon_size:
-        hexagon_height = self.hexagon_size * 0.85
+        hexagon_height = self.size * 0.85
         current_text_height = 0  # record current text height for each wrapped line
 
         lines = []
@@ -119,7 +141,7 @@ class HexagonDrawer:
             self.canvas.itemconfig(text_id, text=full_text)
         else:
             # Show truncated text
-            text_wrap_width = self.hexagon_size * 0.85
+            text_wrap_width = self.size * 0.85
             self.canvas.itemconfig(text_id, text=self.wrap_text(full_text, text_wrap_width))
 
     def bind_drag(self, hexagon):
@@ -157,20 +179,119 @@ class HexagonDrawer:
         self.drag_data['x'] = event.x
         self.drag_data['y'] = event.y
 
+        # Check if any of the shift keys is pressed to activate auto-snapping
+        if event.state & 0x1 or event.state & 0x2 or event.state & 0x2000:
+            # see what's nearby to begin docking, given the current mouse
+            # pointer coord (event.x, event.y):
+            self.check_for_docking(event.x, event.y)
+
+    def check_for_docking(self, x, y):
+        dragged_item = self.drag_data['item']  # ID of the hexagon being dragged
+        dragged_item_coords = self.canvas.coords(dragged_item)  # coordinates of hexagon being moved
+
+        # Iterate through all hexagons to find the nearest hexagon to dragged_item (hexagon being moved)
+        for hexagon_data in self.hexagons:
+            hexagon = hexagon_data['hexagon']
+
+            if hexagon == dragged_item:  # skip hexagon being dragged
+                continue
+
+            hex_coords = self.canvas.coords(hexagon)
+
+            # Iterate through each side of the current hexagon to find the closest two sides
+            # between it and the hexagon being dragged. Store this minimum distance in min_distance,
+            # so that in the end we have the smallest distance among all looped hexagons
+            for dragged_side_index in range(6):
+                # Coordinates of the side of the hexagon being dragged
+                dragged_side_x_start = dragged_item_coords[2 * dragged_side_index]
+                dragged_side_y_start = dragged_item_coords[2 * dragged_side_index + 1]
+                dragged_side_x_end = dragged_item_coords[2 * ((dragged_side_index + 1) % 6)]
+                dragged_side_y_end = dragged_item_coords[2 * ((dragged_side_index + 1) % 6) + 1]
+
+                for hex_side_index in range(6):
+                    # Coordinates of the sides of the current hexagon
+                    hex_side_x_start = hex_coords[2 * hex_side_index]
+                    hex_side_y_start = hex_coords[2 * hex_side_index + 1]
+                    hex_side_x_end = hex_coords[2 * ((hex_side_index + 1) % 6)]
+                    hex_side_y_end = hex_coords[2 * ((hex_side_index + 1) % 6) + 1]
+
+                    # Calculate distances between the midpoints of the sides of dragged hexagon
+                    # and current hexagon (because the sides are parallel, any coord would do)
+                    current_distance_between_sides = distance_between_sides(
+                        dragged_side_x_start, dragged_side_y_start, dragged_side_x_end, dragged_side_y_end,
+                        hex_side_x_start, hex_side_y_start, hex_side_x_end, hex_side_y_end
+                    )
+
+                    # Dock as you go if any of the current hexagon's sides to any of the
+                    # dragged hexagon's sides is less than the snapping distance
+                    if current_distance_between_sides < self.snap_distance:
+                        nearest_hexagon = hexagon_data['hexagon']
+                        nearest_hex_coords = self.canvas.coords(nearest_hexagon)
+
+                        # Calculate the midpoint of the docking side of the nearest hexagon
+                        docking_side_index = (hex_side_index + 3) % 6  # Opposite side
+
+                        # Recall that the 12 hexagon coordinates are stored in a flat list:
+                        # [0,   1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11]
+                        # [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5]     <- this is nearest_hex_coord[]
+                        # Thus, side0 = [0, 1, 2, 3]; side1 = [2, 3, 4, 5] ... <- this is docking_side_index
+                        # So, if the docking_side_index = 5, use modulus 12 (len of nearest hex coord)
+                        # in order to capture the right coords of side5:
+                        docking_midpoint_x = (nearest_hex_coords[docking_side_index * 2] +
+                                              nearest_hex_coords[(docking_side_index * 2 + 2) % len(nearest_hex_coords)]) / 2
+                        docking_midpoint_y = (nearest_hex_coords[docking_side_index * 2 + 1] +
+                                              nearest_hex_coords[(docking_side_index * 2 + 3) % len(nearest_hex_coords)]) / 2
+
+                        # Calculate the midpoint of the dragged hexagon's side
+                        dragged_midpoint_x = (hex_side_x_start + hex_side_x_end) / 2
+                        dragged_midpoint_y = (hex_side_y_start + hex_side_y_end) / 2
+
+                        # Calculate the delta x and delta y to move the dragged hexagon to align
+                        # with the nearest hexagon's side based on the docking position and the side indices
+                        dx = 0
+                        dy = 0
+                        # TODO: work on these deltas as they're hit and miss currently
+                        if hex_side_index == 0 and docking_side_index == 3:  # Upper left to lower right
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        elif hex_side_index == 1 and docking_side_index == 4:  # Upper right to lower left
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        elif hex_side_index == 2 and docking_side_index == 5:  # Right side to left side
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        elif hex_side_index == 3 and docking_side_index == 0:  # Lower right to upper left
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        elif hex_side_index == 4 and docking_side_index == 1:  # Lower left to upper right
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        elif hex_side_index == 5 and docking_side_index == 2:  # Left side to right side
+                            dx = docking_midpoint_x - dragged_midpoint_x
+                            dy = docking_midpoint_y - dragged_midpoint_y
+                        else:
+                            # Handle any other cases or default behavior
+                            pass
+
+                        # Move the dragged hexagon and its associated text and number
+                        self.canvas.move(dragged_item, dx, dy)
+                        self.canvas.move(self.get_text_id(dragged_item), dx, dy)
+                        self.canvas.move(self.get_hexagon_number(dragged_item), dx, dy)
+
     def get_text_id(self, hexagon_id):
         # Find text_id associated with hexagon_id, so we drag the
         # elicited information (stored in text) along with corresponding hexagon
         for hexagon in self.hexagons:
-            if hexagon[0] == hexagon_id:
-                return hexagon[1]  # text is stored in the second hexagon tuple position in draw_hexagon()
+            if hexagon['hexagon'] == hexagon_id:
+                return hexagon['text_id']
         return None
 
     def get_hexagon_number(self, hexagon_id):
         # Find the hexagon_number associated with hexagon_id, so we drag the
         # elicited information (stored in text) along with corresponding hexagon
         for hexagon in self.hexagons:
-            if hexagon[0] == hexagon_id:
-                return hexagon[2]  # hexagon_number is stored in the third hexagon tuple position in draw_hexagon()
+            if hexagon['hexagon'] == hexagon_id:
+                return hexagon['hexagon_number']
         return None
 
     def export_to_html(self, width, height):

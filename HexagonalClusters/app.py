@@ -1,7 +1,7 @@
 # main GUI app file
 
 import tkinter as tk
-from hexagon import HexagonDrawer
+from hexagon import Hexagon
 
 
 class HexagonClusterApp:
@@ -16,15 +16,15 @@ class HexagonClusterApp:
         self.canvas.pack(padx=10, pady=10)
 
         # Initialize HexagonDrawer
-        self.hexagon_drawer = HexagonDrawer(self.canvas)
+        self.hexagon_drawer = Hexagon(self.canvas)
 
     def add_hexagon(self, x, y, text):
         # Use HexagonDrawer to draw a hexagon
-        self.hexagon_drawer.draw_hexagon(x, y, text)
+        self.hexagon_drawer.draw(x, y, text)
 
-    # Grab the arranged hexagons into a postscript (see HexagonDrawer.cluster_ps_file attribute)
+    # Grab the arranged hexagons into a postscript (see Hexagon.cluster_ps_file attribute)
     # and include this postscript into an onload js call
-    # inside an html rendering (html file name inside the HexagonDrawer.export_to_html() method)
+    # inside an html rendering (html file name inside the Hexagon.export_to_html() method)
     def export_to_html(self):
         self.hexagon_drawer.export_to_html(self.width, self.height)
 
