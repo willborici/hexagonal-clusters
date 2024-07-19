@@ -2,6 +2,8 @@
 import math
 
 
+# Currently, this static function returns the distance between the midpoints of two sides, since
+# the two docking sides are parallel, any point would do.
 def distance_between_sides(side1_x1, side1_y1, side1_x2, side1_y2, side2_x1, side2_y1, side2_x2, side2_y2):
     # calculated the distance between the midpoint of side 1 and the midpoint of side 2
     midpoint_side1_x = (side1_x1 + side1_x2) / 2
