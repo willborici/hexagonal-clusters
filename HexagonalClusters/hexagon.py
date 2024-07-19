@@ -294,6 +294,7 @@ class Hexagon:
                 return hexagon['hexagon_number']
         return None
 
+    # TODO figure out why the correctly exported PS is not rendered by the HTML JS
     def export_to_html(self, width, height):
         # Create the PostScript file with canvas data
         self.canvas.postscript(file=self.cluster_ps_file, colormode='color')
