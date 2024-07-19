@@ -1,5 +1,6 @@
 # class for drawing a hexagon, with mouse event binders for drag & drop
 import math
+from shapely.geometry import LineString
 
 
 # Currently, this static function returns the distance between the midpoints of two sides, since
@@ -16,6 +17,35 @@ def distance_between_sides(side1_x1, side1_y1, side1_x2, side1_y2, side2_x1, sid
     return distance
 
 
+# Static function to check if, during the dragging of a hexagon, its docking side
+# is fully or partially coinciding with the nearest hexagon's corresponding docking side. If so, the
+# dragged hexagon should be immediately moved to snap at midpoint, regardless of the
+# self.snap_distance value. TODO figure out why the side1.intersects(side2) never returns True
+def are_sides_coincident(side1_x1, side1_y1, side1_x2, side1_y2, side2_x1, side2_y1, side2_x2, side2_y2):
+    # Calculate the slopes of the two sides
+    slope1 = (side1_y2 - side1_y1) / (side1_x2 - side1_x1) if side1_x2 != side1_x1 else None
+    slope2 = (side2_y2 - side2_y1) / (side2_x2 - side2_x1) if side2_x2 != side2_x1 else None
+
+    # If the slopes are not equal, the sides are not parallel and do not coincide
+    if slope1 != slope2:
+        return False
+
+    # define the two sides
+    side1 = LineString([(side1_x1, side1_y1), (side1_x2, side1_y2)])
+    side2 = LineString([(side2_x1, side2_y1), (side2_x2, side2_y2)])
+
+    # Check if the two parallel sides intersect (i.e., partially coincide)
+    if side1.intersects(side2):
+        return True
+
+    # Check if the two parallel sides are equal (i.e., fully coincide)
+    if side1.equals(side2):
+        return True
+
+    # If no point on either side lies on the other, they don't coincide
+    return False
+
+
 class Hexagon:
     hexagon_id = 0  # Class-level identifier to track hexagon numbers and print them on GUI
 
@@ -24,7 +54,7 @@ class Hexagon:
         self.hexagons = []  # list to store hexagon properties and elicited info text
         self.selected_hexagon = None
         self.drag_data = {'x': 0, 'y': 0, 'item': None}
-        self.snap_distance = 3  # to automatically snap a moving hexagon to a nearby one
+        self.snap_distance = 5  # to automatically snap a moving hexagon to a nearby one
         self.size = 50
         self.font = 'Consolas'
         self.font_size = 10
@@ -191,11 +221,15 @@ class Hexagon:
         dragged_item_coords = self.canvas.coords(dragged_item)  # coordinates of hexagon being moved
 
         # Iterate through all hexagons to find the nearest hexagon to dragged_item (hexagon being moved)
+        already_snapped = False  # if docking between multiple hexagons, snap only once, or else it shifts behind the group
         for hexagon_data in self.hexagons:
             hexagon = hexagon_data['hexagon']
 
             if hexagon == dragged_item:  # skip hexagon being dragged
                 continue
+
+            if already_snapped:
+                break
 
             hex_coords = self.canvas.coords(hexagon)
 
@@ -222,9 +256,17 @@ class Hexagon:
                         hex_side_x_start, hex_side_y_start, hex_side_x_end, hex_side_y_end
                     )
 
+                    # Check if the two sides partially coincide, so that the snapping happens
+                    # regardless of the snapping distance
+                    sides_coincide = are_sides_coincident(dragged_side_x_start, dragged_side_y_start,
+                                                          dragged_side_x_end, dragged_side_y_end,
+                                                          hex_side_x_start, hex_side_y_start, hex_side_x_end,
+                                                          hex_side_y_end)
+
                     # Dock as you go if any of the current hexagon's sides to any of the
-                    # dragged hexagon's sides is less than the snapping distance
-                    if current_distance_between_sides < self.snap_distance:
+                    # dragged hexagon's sides is less than the snapping distance, or if the two sides
+                    # are already coincident, in which case just dock them at midpoint
+                    if current_distance_between_sides < self.snap_distance or sides_coincide:
                         # Closest hexagon's closest side's coordinates:
                         docking_midpoint_x = (hex_side_x_start + hex_side_x_end) / 2
                         docking_midpoint_y = (hex_side_y_start + hex_side_y_end) / 2
@@ -243,7 +285,7 @@ class Hexagon:
                         self.canvas.move(self.get_text_id(dragged_item), dx, dy)
                         self.canvas.move(self.get_hexagon_number(dragged_item), dx, dy)
 
-                        break
+                        already_snapped = True
 
     def get_text_id(self, hexagon_id):
         # Find text_id associated with hexagon_id, so we drag the
