@@ -181,11 +181,10 @@ class Hexagon:
 
         # Check if any of the shift keys is pressed to activate auto-snapping
         if event.state & 0x1 or event.state & 0x2 or event.state & 0x2000:
-            # see what's nearby to begin docking, given the current mouse
-            # pointer coord (event.x, event.y):
-            self.check_for_docking(event.x, event.y)
+            # see what's nearby to begin docking, given the hexagon being dragged
+            self.check_for_docking()
 
-    def check_for_docking(self, x, y):
+    def check_for_docking(self):
         dragged_item = self.drag_data['item']  # ID of the hexagon being dragged
         dragged_item_coords = self.canvas.coords(dragged_item)  # coordinates of hexagon being moved
 
@@ -199,8 +198,7 @@ class Hexagon:
             hex_coords = self.canvas.coords(hexagon)
 
             # Iterate through each side of the current hexagon to find the closest two sides
-            # between it and the hexagon being dragged. Store this minimum distance in min_distance,
-            # so that in the end we have the smallest distance among all looped hexagons
+            # between it and the hexagon being dragged.
             for dragged_side_index in range(6):
                 # Coordinates of the side of the hexagon being dragged
                 dragged_side_x_start = dragged_item_coords[2 * dragged_side_index]
@@ -225,22 +223,9 @@ class Hexagon:
                     # Dock as you go if any of the current hexagon's sides to any of the
                     # dragged hexagon's sides is less than the snapping distance
                     if current_distance_between_sides < self.snap_distance:
-                        nearest_hexagon = hexagon_data['hexagon']
-                        nearest_hex_coords = self.canvas.coords(nearest_hexagon)
-
-                        # Calculate the midpoint of the docking side of the nearest hexagon
-                        docking_side_index = (dragged_side_index + 3) % 6  # Opposite side
-
-                        # Recall that the 12 hexagon coordinates are stored in a flat list:
-                        # [0,   1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11]
-                        # [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5]     <- this is nearest_hex_coord[]
-                        # Thus, side0 = [0, 1, 2, 3]; side1 = [2, 3, 4, 5] ... <- this is docking_side_index
-                        # So, if the docking_side_index = 5, use modulus 12 (len of nearest hex coord)
-                        # in order to capture the right coords of side5:
-                        docking_midpoint_x = (nearest_hex_coords[docking_side_index * 2] +
-                                              nearest_hex_coords[(docking_side_index * 2 + 2) % len(nearest_hex_coords)]) / 2
-                        docking_midpoint_y = (nearest_hex_coords[docking_side_index * 2 + 1] +
-                                              nearest_hex_coords[(docking_side_index * 2 + 3) % len(nearest_hex_coords)]) / 2
+                        # Closest hexagon's closest side's coordinates:
+                        docking_midpoint_x = (hex_side_x_start + hex_side_x_end) / 2
+                        docking_midpoint_y = (hex_side_y_start + hex_side_y_end) / 2
 
                         # Calculate the midpoint of the dragged hexagon's side
                         dragged_midpoint_x = (dragged_side_x_start + dragged_side_x_end) / 2
@@ -255,6 +240,8 @@ class Hexagon:
                         self.canvas.move(dragged_item, dx, dy)
                         self.canvas.move(self.get_text_id(dragged_item), dx, dy)
                         self.canvas.move(self.get_hexagon_number(dragged_item), dx, dy)
+
+                        break
 
     def get_text_id(self, hexagon_id):
         # Find text_id associated with hexagon_id, so we drag the
