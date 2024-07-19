@@ -202,6 +202,8 @@ class Hexagon:
         dx = event.x - self.drag_data['x']
         dy = event.y - self.drag_data['y']
 
+        # TODO sometimes, by accident?, the text moves instead of the
+        #      hexagon -- ensure this never happens with Tkinter
         # Move the hexagon and its associated text
         self.canvas.move(self.drag_data['item'], dx, dy)
         self.canvas.move(self.get_text_id(self.drag_data['item']), dx, dy)
@@ -221,13 +223,15 @@ class Hexagon:
         dragged_item_coords = self.canvas.coords(dragged_item)  # coordinates of hexagon being moved
 
         # Iterate through all hexagons to find the nearest hexagon to dragged_item (hexagon being moved)
-        already_snapped = False  # if docking between multiple hexagons, snap only once, or else it shifts behind the group
+        already_snapped = False
         for hexagon_data in self.hexagons:
             hexagon = hexagon_data['hexagon']
 
             if hexagon == dragged_item:  # skip hexagon being dragged
                 continue
 
+            # if docking between multiple hexagons, snap only once, or else it shifts behind the
+            # group of hexagons that are already docked
             if already_snapped:
                 break
 
