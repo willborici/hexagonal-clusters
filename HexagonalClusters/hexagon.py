@@ -229,7 +229,7 @@ class Hexagon:
                         nearest_hex_coords = self.canvas.coords(nearest_hexagon)
 
                         # Calculate the midpoint of the docking side of the nearest hexagon
-                        docking_side_index = (hex_side_index + 3) % 6  # Opposite side
+                        docking_side_index = (dragged_side_index + 3) % 6  # Opposite side
 
                         # Recall that the 12 hexagon coordinates are stored in a flat list:
                         # [0,   1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11]
@@ -243,35 +243,13 @@ class Hexagon:
                                               nearest_hex_coords[(docking_side_index * 2 + 3) % len(nearest_hex_coords)]) / 2
 
                         # Calculate the midpoint of the dragged hexagon's side
-                        dragged_midpoint_x = (hex_side_x_start + hex_side_x_end) / 2
-                        dragged_midpoint_y = (hex_side_y_start + hex_side_y_end) / 2
+                        dragged_midpoint_x = (dragged_side_x_start + dragged_side_x_end) / 2
+                        dragged_midpoint_y = (dragged_side_y_start + dragged_side_y_end) / 2
 
                         # Calculate the delta x and delta y to move the dragged hexagon to align
                         # with the nearest hexagon's side based on the docking position and the side indices
-                        dx = 0
-                        dy = 0
-                        # TODO: work on these deltas as they're hit and miss currently
-                        if hex_side_index == 0 and docking_side_index == 3:  # Upper left to lower right
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        elif hex_side_index == 1 and docking_side_index == 4:  # Upper right to lower left
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        elif hex_side_index == 2 and docking_side_index == 5:  # Right side to left side
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        elif hex_side_index == 3 and docking_side_index == 0:  # Lower right to upper left
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        elif hex_side_index == 4 and docking_side_index == 1:  # Lower left to upper right
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        elif hex_side_index == 5 and docking_side_index == 2:  # Left side to right side
-                            dx = docking_midpoint_x - dragged_midpoint_x
-                            dy = docking_midpoint_y - dragged_midpoint_y
-                        else:
-                            # Handle any other cases or default behavior
-                            pass
+                        dx = docking_midpoint_x - dragged_midpoint_x
+                        dy = docking_midpoint_y - dragged_midpoint_y
 
                         # Move the dragged hexagon and its associated text and number
                         self.canvas.move(dragged_item, dx, dy)
