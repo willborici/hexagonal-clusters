@@ -330,7 +330,7 @@ class Hexagon:
                     img.onload = function() {{
                         ctx.drawImage(img, 0, 0);
                     }};
-                    img.src = '{self.cluster_ps_file}';
+                    img.src = '{self.cluster_ps_file.strip('output/)}';
                 }}
             </script>
         </head>
