@@ -1,6 +1,8 @@
 # class for drawing a hexagon, with mouse event binders for drag & drop
 import math
 from shapely.geometry import LineString
+import subprocess  # to convert ps to png
+import os  # to delete the ps file in case of successful conversion to png
 
 
 # Currently, this static function returns the distance between the midpoints of two sides, since
@@ -46,6 +48,24 @@ def are_sides_coincident(side1_x1, side1_y1, side1_x2, side1_y2, side2_x1, side2
     return False
 
 
+# Function to convert the ps hexagon export to png for rendering in the exported html
+# Assumes ImageMagick is installed wherever this is executed
+def convert_ps_to_png(ps_file, png_file):
+    exported_to_png = True
+
+    try:
+        subprocess.run(["magick", ps_file, png_file], check=True)
+        os.remove(ps_file)  # delete the ps file after successful conversion to png
+    except subprocess.CalledProcessError as conversion_error:
+        print(f"Conversion failed: {conversion_error}")
+        exported_to_png = False
+    except FileNotFoundError:
+        print("ImageMagick is not installed or not in the system path.")
+        exported_to_png = False
+
+    return exported_to_png
+
+
 class Hexagon:
     hexagon_id = 0  # Class-level identifier to track hexagon numbers and print them on GUI
 
@@ -61,7 +81,9 @@ class Hexagon:
         self.font = 'Consolas'
         self.font_size = 10
         self.truncation_mark = '[...]'
-        self.cluster_ps_file = 'output/hexagonal_clusters.ps'  # Define cluster_ps_file for cluster output
+        self.output_dir = './output/'
+        self.cluster_ps_file = 'hexagonal_clusters.ps'  # Define cluster_ps_file for cluster output
+        self.cluster_png_file = 'hexagonal_clusters.png'  # PNG file converted from the PS file
 
     def draw(self, x, y, text):
         # Increment ID
@@ -161,12 +183,6 @@ class Hexagon:
                 break
 
         return ''.join(lines)  # concatenate list of lines into a string
-
-    def truncate_text(self, text, width):
-        # Truncate text to fit within the specified width
-        while self.text_exceeds_width(text, width):
-            text = text[:-1]  # keep truncating until truncated text is within width
-        return text + self.truncation_mark
 
     def toggle_full_text(self, event, text_id, full_text):
         current_text = self.canvas.itemcget(text_id, 'text')
@@ -310,10 +326,17 @@ class Hexagon:
                 return hexagon['hexagon_number']
         return None
 
-    # TODO figure out why the correctly exported PS is not rendered by the HTML JS
     def export_to_html(self, width, height):
         # Create the PostScript file with canvas data
-        self.canvas.postscript(file=self.cluster_ps_file, colormode='color')
+        self.canvas.postscript(file=self.output_dir + self.cluster_ps_file, colormode='color')
+
+        # attempt ps->png conversion. if good, use the png file, else reference the ps for
+        # the user to manually export to png with whatever program
+        if convert_ps_to_png(self.output_dir + self.cluster_ps_file,
+                             self.output_dir + self.cluster_png_file):
+            img_src = self.cluster_png_file
+        else:
+            img_src = 'Error: Convert ps to png'
 
         # Create HTML content
         html_content = f"""
@@ -330,7 +353,7 @@ class Hexagon:
                     img.onload = function() {{
                         ctx.drawImage(img, 0, 0);
                     }};
-                    img.src = '{self.cluster_ps_file.strip('output/)}';
+                    img.src = '{img_src}';
                 }}
             </script>
         </head>
