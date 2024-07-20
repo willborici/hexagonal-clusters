@@ -55,7 +55,9 @@ class Hexagon:
         self.selected_hexagon = None
         self.drag_data = {'x': 0, 'y': 0, 'item': None}
         self.snap_distance = 5  # to automatically snap a moving hexagon to a nearby one
-        self.size = 50
+        self.size = 55
+        self.background_color = 'orange'
+        self.outline_color = 'white'
         self.font = 'Consolas'
         self.font_size = 10
         self.truncation_mark = '[...]'
@@ -73,7 +75,8 @@ class Hexagon:
             points.append(x + self.size * math.cos(angle_rad))
             points.append(y + self.size * math.sin(angle_rad))
         # draw hexagon with given points
-        hexagon = self.canvas.create_polygon(points, outline='navy', fill='orange', width=0.5)
+        hexagon = self.canvas.create_polygon(points, outline=self.outline_color,
+                                             fill=self.background_color, width=0.5)
 
         # Create a unique tag for the hexagon in order to bind it later to the mouse left-click
         # since polygons are not bound by default
