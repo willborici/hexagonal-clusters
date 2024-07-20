@@ -78,7 +78,7 @@ class Hexagon:
         self.size = 55
         self.background_color = 'orange'
         self.outline_color = 'white'
-        self.font = 'Consolas'
+        self.font = 'Arial'
         self.font_size = 10
         self.truncation_mark = '[...]'
         self.output_dir = './output/'
